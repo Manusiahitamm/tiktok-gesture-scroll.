@@ -1,0 +1,50 @@
+
+name: Build TikTok Gesture Scroll APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'TikTokGestureScroll_Source.zip'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.7'
+
+      - name: Extract project and download hand model
+        run: |
+          unzip TikTokGestureScroll_Source.zip -d project
+          mkdir -p project/app/src/main/assets
+          curl -fL \
+            https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task \
+            -o project/app/src/main/assets/hand_landmarker.task
+
+      - name: Build APK
+        run: gradle -p project assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TikTok-Gesture-Scroll-APK
+          path: project/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          
